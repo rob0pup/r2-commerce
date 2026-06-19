@@ -1,0 +1,21 @@
+{
+  "name": "r2-commerce",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Semantic product search engine (pgvector + Gemini embeddings), the core of an AI search layer for commerce / Medusa stores.",
+  "scripts": {
+    "index": "tsx src/index-catalog.ts",
+    "search": "tsx src/search.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
