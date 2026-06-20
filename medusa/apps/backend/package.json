@@ -16,6 +16,7 @@
     "build": "medusa build",
     "start": "medusa start",
     "dev": "medusa develop",
+    "predeploy": "medusa db:migrate",
     "db:migrate": "medusa db:migrate",
     "seed": "medusa exec ./src/scripts/seed-products.ts",
     "reindex": "medusa exec ./src/scripts/reindex.ts",

@@ -1,61 +1,148 @@
 # Deploying R² Commerce
 
 Three pieces, three homes. The split keeps the storefront fast (Vercel CDN) and
-cheap (free tier) while Railway runs only the always-on Medusa server.
+free, while Railway runs only the always-on Medusa server.
 
 ```
-Shopper ──▶ storefront (Vercel)  ──▶ Medusa backend (Railway) ──▶ Neon Postgres + pgvector
-                                              │
-                                              └──▶ Upstash Redis (events, cache)
-                                              └──▶ Gemini API (embeddings)
+Shopper ──▶ storefront (Vercel) ──▶ Medusa backend (Railway) ──▶ Neon Postgres + pgvector
+                                            │
+                                            ├──▶ Upstash Redis (events, cache) [optional]
+                                            └──▶ Gemini API (embeddings)
 ```
 
-| Piece      | Host             | Plan / cost                          |
-| ---------- | ---------------- | ------------------------------------ |
-| Database   | Neon             | Free (already provisioned)           |
-| Redis      | Upstash          | Free tier                            |
-| Backend    | Railway          | Hobby ~$5/mo (always-on)             |
-| Storefront | Vercel           | Hobby free (Pro $20/mo if commercial)|
-| Domain     | shop.robinrahman.pro | DNS only                         |
+| Piece      | Host                 | Plan / cost                           |
+| ---------- | -------------------- | ------------------------------------- |
+| Database   | Neon                 | Free (already provisioned)            |
+| Redis      | Upstash              | Free tier (optional but recommended)  |
+| Backend    | Railway              | Hobby ~$5/mo (always-on)              |
+| Storefront | Vercel               | Hobby free (Pro $20/mo if commercial) |
+| Domain     | shop.robinrahman.pro | DNS only                              |
 
-## 1. Backend → Railway
+Build/start commands below are verified against this repo (Medusa 2.16, monorepo).
 
-1. New Railway project → Deploy from GitHub repo `rob0pup/r2-commerce`.
-2. Root directory: `medusa/apps/backend`. Build: `npm run build`. Start: `npm run start`.
-3. Environment variables:
-   - `DATABASE_URL` — Neon **direct** connection string (not pooled; Medusa uses
-     prepared statements that break on PgBouncer).
-   - `REDIS_URL` — Upstash Redis URL (create a free database, copy the `rediss://` URL).
-   - `GOOGLE_GENERATIVE_AI_API_KEY` — Gemini key.
-   - `JWT_SECRET`, `COOKIE_SECRET` — fresh random strings (not the dev `supersecret`).
-   - `STORE_CORS`, `ADMIN_CORS`, `AUTH_CORS` — set to the storefront origin
-     (`https://shop.robinrahman.pro`) once it exists.
-4. Wire Redis into `medusa-config.ts` for production (event bus + cache + workflow
-   engine modules) so events survive restarts. Local dev still falls back to
-   in-memory when `REDIS_URL` is unset.
-5. First deploy: run `medusa db:migrate`, then `medusa exec ./src/scripts/seed-products.ts`
-   (Railway one-off command or a release step), then create an admin user with
-   `medusa user -e you@domain -p ...`.
+---
 
-## 2. Storefront → Vercel
+## Before you start
 
-1. New Vercel project → import `rob0pup/r2-commerce`.
-2. Root directory: `medusa/apps/storefront`. Framework preset: Next.js.
-3. Environment variable: `MEDUSA_BACKEND_URL` = the Railway backend URL
-   (e.g. `https://r2-commerce-backend.up.railway.app`).
-4. The browser only ever talks to the Next server route `/api/search`, which
-   proxies to the backend — so no public CORS surface and the backend URL stays
-   server-side.
+1. **Generate two production secrets** (don't reuse the dev `supersecret`):
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # JWT_SECRET
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # COOKIE_SECRET
+   ```
+2. **Neon connection string** — use the **direct** (non-pooled) one. Medusa uses
+   prepared statements that break on PgBouncer pooled endpoints.
+3. **(Optional) Upstash Redis** — create a free database, copy its `rediss://` URL.
+   Skip for a first deploy; Medusa falls back to in-memory (single instance only).
 
-## 3. Domain
+---
 
-- `shop.robinrahman.pro` → Vercel (CNAME to the Vercel project). Storefront only.
-- Backend can stay on its Railway URL, or get `api.robinrahman.pro` if a clean
-  public API host is wanted.
+## Part A — Backend → Railway
 
-## Notes
+### 1. Create the service
 
-- Neon scales to zero when idle; the first request after a quiet spell has a ~1s
-  cold start. Fine for a demo; a paid Neon plan or a keep-warm ping removes it.
-- The semantic-search route is currently unauthenticated and public. Before any
-  real traffic, move it under `/store` (publishable key) or add rate limiting.
+1. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**.
+2. Grant Railway access to the **private** `rob0pup/r2-commerce` repo, then select it.
+
+### 2. Settings → Build & Deploy
+
+| Setting            | Value                                                            |
+| ------------------ | --------------------------------------------------------------- |
+| **Root Directory** | `medusa/apps/backend`                                           |
+| **Build Command**  | `npm install && npm run build && cd .medusa/server && npm install` |
+| **Start Command**  | `cd .medusa/server && npm run predeploy && npm run start`       |
+| **Healthcheck Path** | `/health`                                                     |
+
+- `medusa build` compiles into `.medusa/server` (a standalone server).
+- `npm run predeploy` runs `medusa db:migrate` on every deploy, so migrations
+  always run before the server boots.
+
+### 3. Variables
+
+```
+DATABASE_URL=postgres://...              # Neon DIRECT (non-pooled)
+GOOGLE_GENERATIVE_AI_API_KEY=...
+JWT_SECRET=<generated above>
+COOKIE_SECRET=<generated above>
+
+# CORS — fill the storefront URL in after Part B (use a placeholder for now)
+STORE_CORS=https://<your-storefront>.vercel.app
+ADMIN_CORS=https://<your-backend>.up.railway.app
+AUTH_CORS=https://<your-backend>.up.railway.app,https://<your-storefront>.vercel.app
+
+# Optional (recommended for production)
+REDIS_URL=rediss://...                   # Upstash
+```
+
+Railway sets `PORT` automatically; Medusa reads it. `MEDUSA_WORKER_MODE` defaults
+to `shared` (API + worker in one service) — fine for this size.
+
+### 4. Get the backend URL
+
+Railway **Settings → Networking → Generate Domain**. That's your
+`https://<your-backend>.up.railway.app`. Put it in `ADMIN_CORS` / `AUTH_CORS` above.
+
+### 5. Seed data + create an admin (one-time)
+
+Migrations run automatically via `predeploy`. To seed demo products and create an
+admin login, open a shell on the running service:
+
+```bash
+# locally, once:
+npm i -g @railway/cli
+railway login
+railway link            # pick the r2-commerce project/service
+railway ssh             # shell into the container
+
+# inside the container:
+cd .medusa/server
+npm run seed
+npm run user -- -e you@example.com -p yourpassword
+```
+
+The admin dashboard is then at `https://<your-backend>.up.railway.app/app`.
+
+---
+
+## Part B — Storefront → Vercel
+
+1. [vercel.com](https://vercel.com) → **Add New → Project** → import
+   `rob0pup/r2-commerce` (grant access to the private repo).
+2. **Root Directory:** `medusa/apps/storefront` (Framework auto-detects Next.js).
+3. **Environment Variable:**
+   ```
+   MEDUSA_BACKEND_URL=https://<your-backend>.up.railway.app
+   ```
+4. **Deploy.** Vercel gives you `https://<your-storefront>.vercel.app`.
+
+The browser only calls the storefront's own `/api/search` route, which proxies to
+the backend server-side — so there's no public CORS surface from the browser.
+
+---
+
+## Part C — Connect them
+
+1. Back in Railway, set `STORE_CORS` and `AUTH_CORS` to include the real Vercel
+   storefront URL, then redeploy (or it restarts on the variable change).
+2. Open the storefront URL and run a search. Done.
+
+---
+
+## Part D — Custom domain (optional)
+
+1. Vercel project → **Settings → Domains** → add `shop.robinrahman.pro` and set the
+   CNAME it shows at your DNS provider.
+2. Update Railway `STORE_CORS` / `AUTH_CORS` to use the custom domain.
+
+---
+
+## Notes & gotchas
+
+- **Neon scale-to-zero:** the first request after idle has a ~1s cold start. Fine
+  for a demo; a paid Neon plan or a keep-warm ping removes it.
+- **Public search route:** `/semantic-search` is unauthenticated. Before real
+  traffic, move it under `/store` (publishable key) or add rate limiting.
+- **Vercel auto-import:** if Vercel ever auto-creates a project for this repo with
+  the wrong root, delete it and re-add with Root Directory `medusa/apps/storefront`.
+- **Redis:** without `REDIS_URL` the backend logs "Local Event Bus … not
+  recommended for production" — expected. Add Upstash to silence it and make events
+  durable across restarts.
