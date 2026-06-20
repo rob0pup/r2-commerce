@@ -3,3 +3,11 @@ node_modules/
 .env.local
 dist/
 *.log
+
+# Next.js
+.next/
+out/
+
+# Medusa build output
+.medusa/
+medusa-build/
