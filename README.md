@@ -306,6 +306,6 @@ This is a focused reference implementation. Known gaps, roughly in priority orde
 
 ## Credits
 
-Built by [Robin Rahman](https://robinrahman.pro). Semantic-search engine,
+Built by [Robin](https://github.com/rob0pup). Semantic-search engine,
 Medusa module, and storefront are original work; Medusa, pgvector, and Gemini do
 the heavy lifting underneath.
