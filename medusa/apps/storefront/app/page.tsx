@@ -2,7 +2,13 @@
 
 import { useState } from "react"
 
-type Result = { id: string; title: string; description: string; score: number }
+type Result = {
+  id: string
+  title: string
+  description: string
+  price: number | null
+  score: number
+}
 
 const EXAMPLES = [
   "warm layer for a freezing hike",
@@ -13,6 +19,7 @@ const EXAMPLES = [
 
 export default function Home() {
   const [q, setQ] = useState("")
+  const [submitted, setSubmitted] = useState("")
   const [results, setResults] = useState<Result[] | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -20,6 +27,7 @@ export default function Home() {
     const term = query.trim()
     if (!term) return
     setQ(term)
+    setSubmitted(term)
     setLoading(true)
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(term)}`)
@@ -67,25 +75,48 @@ export default function Home() {
       </div>
 
       <div className="results">
-        {results === null && (
+        {loading && (
+          <>
+            {[0, 1, 2].map((i) => (
+              <div className="card skeleton" key={i}>
+                <div>
+                  <div className="bar bar-title" />
+                  <div className="bar bar-text" />
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {!loading && results === null && (
           <p className="empty">Try a phrase above to see products ranked by meaning.</p>
         )}
-        {results !== null && results.length === 0 && !loading && (
-          <p className="empty">No matches. Try describing it differently.</p>
+
+        {!loading && results !== null && (
+          <p className="count">
+            {results.length === 0
+              ? `No strong matches for "${submitted}". Try describing it differently.`
+              : `${results.length} ${results.length === 1 ? "match" : "matches"} for "${submitted}"`}
+          </p>
         )}
-        {results?.map((r) => (
-          <div className="card" key={r.id}>
-            <div>
-              <h3>{r.title}</h3>
-              <p>{r.description}</p>
+
+        {!loading &&
+          results?.map((r) => (
+            <div className="card" key={r.id}>
+              <div>
+                <h3>{r.title}</h3>
+                <p>{r.description}</p>
+              </div>
+              <div className="meta">
+                {r.price !== null && <span className="price">${r.price}</span>}
+                <span className="match">{Math.round(r.score * 100)}% match</span>
+              </div>
             </div>
-            <span className="score">{r.score.toFixed(2)}</span>
-          </div>
-        ))}
+          ))}
       </div>
 
       <p className="foot">
-        Same engine indexes on every product create/update via a Medusa subscriber.
+        Same engine indexes on every product create, update, and delete via Medusa subscribers.
       </p>
     </main>
   )

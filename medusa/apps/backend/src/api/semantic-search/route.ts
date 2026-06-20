@@ -1,8 +1,24 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { SEMANTIC_SEARCH_MODULE } from "../../modules/semantic-search"
 import type SemanticSearchService from "../../modules/semantic-search/service"
+
+type GraphProduct = {
+  id: string
+  title: string
+  description: string | null
+  variants?: { prices?: { amount: number; currency_code: string }[] }[]
+}
+
+// Lowest USD price across a product's variants, or null if it has none.
+function lowestPrice(p: GraphProduct): number | null {
+  const amounts = (p.variants ?? [])
+    .flatMap((v) => v.prices ?? [])
+    .filter((pr) => pr.currency_code === "usd")
+    .map((pr) => pr.amount)
+  return amounts.length ? Math.min(...amounts) : null
+}
 
 // Below this cosine similarity a result isn't a real match, just the nearest of
 // a bad bunch. Keeping it out is what separates "ranked catalog dump" from search.
@@ -26,7 +42,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const limit = Math.min(parseNumber(req.query.limit, DEFAULT_LIMIT), 20)
 
   const semanticSearch = req.scope.resolve(SEMANTIC_SEARCH_MODULE) as SemanticSearchService
-  const productModule = req.scope.resolve(Modules.PRODUCT)
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   // Over-fetch, then keep only genuinely relevant hits above the threshold.
   const hits = (await semanticSearch.search(q, 20))
@@ -38,9 +54,13 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     return
   }
 
-  // Fetch full product records through the product module, then keep ranking order.
-  const products = await productModule.listProducts({ id: hits.map((h) => h.productId) })
-  const byId = new Map(products.map((p) => [p.id, p]))
+  // Graph query resolves prices through the product→pricing module link.
+  const { data: products } = await query.graph({
+    entity: "product",
+    fields: ["id", "title", "description", "variants.prices.amount", "variants.prices.currency_code"],
+    filters: { id: hits.map((h) => h.productId) },
+  })
+  const byId = new Map((products as GraphProduct[]).map((p) => [p.id, p]))
 
   const results = hits
     .map((h) => {
@@ -50,10 +70,11 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
         id: p.id,
         title: p.title,
         description: p.description,
+        price: lowestPrice(p),
         score: Number(h.score.toFixed(4)),
       }
     })
     .filter(Boolean)
 
-  res.json({ query: q, threshold, results })
+  res.json({ query: q, threshold, count: results.length, results })
 }
