@@ -69,6 +69,10 @@ STORE_CORS=https://<your-storefront>.vercel.app
 ADMIN_CORS=https://<your-backend>.up.railway.app
 AUTH_CORS=https://<your-backend>.up.railway.app,https://<your-storefront>.vercel.app
 
+# Required — the Medusa scaffold has peer-dep mismatches; this lets every npm
+# install in the build (incl. the generated .medusa/server) resolve them.
+NPM_CONFIG_LEGACY_PEER_DEPS=true
+
 # Optional (recommended for production)
 REDIS_URL=rediss://...                   # Upstash
 ```
