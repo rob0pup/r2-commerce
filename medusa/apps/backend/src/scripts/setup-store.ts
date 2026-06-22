@@ -63,7 +63,7 @@ export default async function setupStore({ container }: ExecArgs) {
   let linked = 0
   let imaged = 0
   for (const p of ours) {
-    const inChannel = (p.sales_channels ?? []).some((sc) => sc.id === channel.id)
+    const inChannel = (p.sales_channels ?? []).some((sc) => sc?.id === channel.id)
     if (!inChannel) {
       await link.create({
         [Modules.PRODUCT]: { product_id: p.id },
