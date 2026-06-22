@@ -73,24 +73,28 @@ store and to expose it cleanly.
 ## Architecture
 
 ```
-                       ┌──────────────────────────────┐
-  Shopper ─── query ──▶│  Storefront (Next.js, :8000) │
-                       │   /api/search  (server proxy)│   no CORS, hides backend URL
-                       └───────────────┬──────────────┘
-                                       │ HTTP
-                                       ▼
-                       ┌──────────────────────────────┐
-                       │  Medusa backend (:9000)       │
-                       │   GET /semantic-search?q=...  │
-                       │   semantic-search module      │──┐
-                       │   product.* subscribers       │  │ embed()
-                       └───────────────┬──────────────┘  │
-                                       │                  ▼
-                       ┌───────────────┴───────┐   ┌──────────────┐
-                       │ Postgres + pgvector    │   │  Gemini API  │
-                       │  product_embedding     │   │  embeddings  │
-                       │  (HNSW cosine index)   │   └──────────────┘
-                       └────────────────────────┘
+                Shopper
+                   │  query
+                   ▼
+  ┌────────────────────────────────┐
+  │ Storefront (Next.js, :8000)    │
+  │ /api/search  (server proxy)    │
+  └────────────────┬───────────────┘
+                   │ HTTP
+                   ▼
+  ┌────────────────────────────────┐         ┌──────────────────┐
+  │ Medusa backend (:9000)         │  embed()│ Gemini API       │
+  │ GET /semantic-search?q=...     │────────▶│ embeddings       │
+  │ semantic-search module         │         └──────────────────┘
+  │ product.* subscribers          │
+  └────────────────┬───────────────┘
+                   │
+                   ▼
+  ┌────────────────────────────────┐
+  │ Postgres + pgvector            │
+  │ product_embedding              │
+  │ (HNSW cosine index)            │
+  └────────────────────────────────┘
 ```
 
 A shopper only ever talks to the Next.js server route `/api/search`, which proxies
