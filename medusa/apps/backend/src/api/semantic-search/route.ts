@@ -7,6 +7,8 @@ import type SemanticSearchService from "../../modules/semantic-search/service"
 type GraphProduct = {
   id: string
   title: string
+  handle: string | null
+  thumbnail: string | null
   description: string | null
   variants?: { prices?: { amount: number; currency_code: string }[] }[]
 }
@@ -57,7 +59,15 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   // Graph query resolves prices through the product→pricing module link.
   const { data: products } = await query.graph({
     entity: "product",
-    fields: ["id", "title", "description", "variants.prices.amount", "variants.prices.currency_code"],
+    fields: [
+      "id",
+      "title",
+      "handle",
+      "thumbnail",
+      "description",
+      "variants.prices.amount",
+      "variants.prices.currency_code",
+    ],
     filters: { id: hits.map((h) => h.productId) },
   })
   const byId = new Map((products as GraphProduct[]).map((p) => [p.id, p]))
@@ -69,6 +79,8 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       return {
         id: p.id,
         title: p.title,
+        handle: p.handle,
+        thumbnail: p.thumbnail,
         description: p.description,
         price: lowestPrice(p),
         score: Number(h.score.toFixed(4)),
