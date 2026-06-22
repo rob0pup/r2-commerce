@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 
+import { LogoMark } from "./logo-mark"
+
 type Result = {
   id: string
   title: string
@@ -42,7 +44,10 @@ export default function Home() {
 
   return (
     <main className="wrap">
-      <div className="brand">R² Commerce</div>
+      <div className="brand">
+        <LogoMark className="logo" />
+        <span>R² Commerce</span>
+      </div>
       <h1>Search by meaning, not keywords.</h1>
       <p className="sub">
         Describe what you need in your own words. Powered by Medusa, pgvector, and Gemini

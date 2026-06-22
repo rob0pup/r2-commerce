@@ -77,33 +77,45 @@ NPM_CONFIG_LEGACY_PEER_DEPS=true
 REDIS_URL=rediss://...                   # Upstash
 ```
 
-Railway sets `PORT` automatically; Medusa reads it. `MEDUSA_WORKER_MODE` defaults
-to `shared` (API + worker in one service) — fine for this size.
+Railway injects `PORT` automatically (8080) and Medusa binds to it — do **not**
+hardcode 9000. `MEDUSA_WORKER_MODE` defaults to `shared` (API + worker in one
+service) — fine for this size.
 
 ### 4. Get the backend URL
 
-Railway **Settings → Networking → Generate Domain**. That's your
-`https://<your-backend>.up.railway.app`. Put it in `ADMIN_CORS` / `AUTH_CORS` above.
+Railway **service → Settings → Networking → Public Networking → Generate Domain**.
+When it asks for a port, accept the detected **8080** (the port Medusa bound to via
+Railway's `PORT`). That's your `https://<your-backend>.up.railway.app`. Put it in
+`ADMIN_CORS` / `AUTH_CORS` above.
 
-### 5. Seed data + create an admin (one-time)
+### 5. Migrations, admin user, and demo data
 
-Migrations run automatically via `predeploy`. To seed demo products and create an
-admin login, open a shell on the running service:
+Migrations run automatically on every deploy via `predeploy` (`medusa db:migrate`).
+
+**Create an admin user** in the running container. Easiest is the service's
+**Console** tab in the Railway dashboard (a web shell into the container); or
+`railway ssh` from a local machine with the Railway CLI installed (`npm i -g
+@railway/cli && railway login && railway link`). Then:
 
 ```bash
-# locally, once:
-npm i -g @railway/cli
-railway login
-railway link            # pick the r2-commerce project/service
-railway ssh             # shell into the container
-
-# inside the container:
 cd .medusa/server
-npm run seed
 npm run user -- -e you@example.com -p yourpassword
 ```
 
 The admin dashboard is then at `https://<your-backend>.up.railway.app/app`.
+
+**Seed demo products** — the production build doesn't ship the seed script's
+`.ts` source, so `npm run seed` won't run inside the container. Instead run it
+from a local clone pointed at the production database (this is what indexes the
+embeddings too):
+
+```bash
+# in medusa/apps/backend locally, with DATABASE_URL set to the production Neon string
+npm run seed
+```
+
+You only do this once for the demo catalog — after that, the semantic-search
+subscriber indexes any product you add through the admin automatically.
 
 ---
 
@@ -147,6 +159,9 @@ the backend server-side — so there's no public CORS surface from the browser.
   traffic, move it under `/store` (publishable key) or add rate limiting.
 - **Vercel auto-import:** if Vercel ever auto-creates a project for this repo with
   the wrong root, delete it and re-add with Root Directory `medusa/apps/storefront`.
-- **Redis:** without `REDIS_URL` the backend logs "Local Event Bus … not
-  recommended for production" — expected. Add Upstash to silence it and make events
-  durable across restarts.
+- **Redis:** optional. Without `REDIS_URL` the backend logs "Local Event Bus … not
+  recommended for production" and runs in-memory — fine for a single instance. If
+  you add it, `REDIS_URL` **must** be a full `rediss://default:<pass>@<host>.upstash.io:6379`
+  string (Upstash → Connect → Node). A missing scheme or wrong value makes ioredis
+  fall back to `localhost:6379`, which floods errors and stops the server from ever
+  passing its healthcheck.

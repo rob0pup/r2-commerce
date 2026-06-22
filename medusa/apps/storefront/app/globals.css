@@ -32,10 +32,19 @@ body {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.logo {
+  height: 18px;
+  width: auto;
+  color: var(--fg);
 }
 
 h1 {
