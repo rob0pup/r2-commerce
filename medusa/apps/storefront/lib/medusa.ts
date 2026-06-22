@@ -1,6 +1,12 @@
 // Server-side reads from the Medusa Store API. The publishable key scopes the
 // request to our sales channel; the region resolves USD prices.
-const BACKEND = process.env.MEDUSA_BACKEND_URL ?? "http://localhost:9000"
+
+// Tolerate a backend URL set without a scheme (e.g. "host.up.railway.app").
+function withScheme(url: string) {
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`
+}
+
+const BACKEND = withScheme(process.env.MEDUSA_BACKEND_URL ?? "http://localhost:9000")
 const KEY = process.env.MEDUSA_PUBLISHABLE_KEY ?? ""
 const REGION = process.env.MEDUSA_REGION_ID ?? ""
 
@@ -33,12 +39,18 @@ function toProduct(p: StoreProduct): Product {
 
 export async function getProducts(): Promise<Product[]> {
   if (!KEY || !REGION) return []
-  const url = `${BACKEND}/store/products?limit=100&region_id=${REGION}&fields=id,title,handle,thumbnail,*variants.calculated_price`
-  const res = await fetch(url, {
-    headers: { "x-publishable-api-key": KEY },
-    next: { revalidate: 60 },
-  })
-  if (!res.ok) return []
-  const data = (await res.json()) as { products?: StoreProduct[] }
-  return (data.products ?? []).map(toProduct)
+  // A catalog fetch failure should never break the build; degrade to empty and
+  // let ISR refill on the next request.
+  try {
+    const url = `${BACKEND}/store/products?limit=100&region_id=${REGION}&fields=id,title,handle,thumbnail,*variants.calculated_price`
+    const res = await fetch(url, {
+      headers: { "x-publishable-api-key": KEY },
+      next: { revalidate: 60 },
+    })
+    if (!res.ok) return []
+    const data = (await res.json()) as { products?: StoreProduct[] }
+    return (data.products ?? []).map(toProduct)
+  } catch {
+    return []
+  }
 }
