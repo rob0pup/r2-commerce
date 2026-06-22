@@ -82,12 +82,12 @@ store and to expose it cleanly.
   └────────────────┬───────────────┘
                    │ HTTP
                    ▼
-  ┌────────────────────────────────┐         ┌──────────────────┐
-  │ Medusa backend (:9000)         │  embed()│ Gemini API       │
-  │ GET /semantic-search?q=...     │────────▶│ embeddings       │
-  │ semantic-search module         │         └──────────────────┘
-  │ product.* subscribers          │
-  └────────────────┬───────────────┘
+  ┌────────────────────────────────┐
+  │ Medusa backend (:9000)         │
+  │ GET /semantic-search?q=...     │            ┌────────────────┐
+  │ semantic-search module         │──embed()──▶│ Gemini API     │
+  │ product.* subscribers          │            │ embeddings     │
+  └────────────────┬───────────────┘            └────────────────┘
                    │
                    ▼
   ┌────────────────────────────────┐
