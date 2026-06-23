@@ -43,6 +43,32 @@ const paymentModules = STRIPE_API_KEY
     ]
   : []
 
+// Email via Resend activates only when RESEND_API_KEY is set. This overrides
+// the default in-memory notification provider with Resend for the email
+// channel, enabling password resets and order confirmations. Without the key,
+// Medusa keeps logging notifications locally (fine for dev).
+const RESEND_API_KEY = process.env.RESEND_API_KEY
+const notificationModules = RESEND_API_KEY
+  ? [
+      {
+        resolve: "@medusajs/medusa/notification",
+        options: {
+          providers: [
+            {
+              resolve: "./src/modules/resend",
+              id: "resend",
+              options: {
+                channels: ["email"],
+                apiKey: RESEND_API_KEY,
+                from: process.env.RESEND_FROM,
+              },
+            },
+          ],
+        },
+      },
+    ]
+  : []
+
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
@@ -61,5 +87,6 @@ module.exports = defineConfig({
     },
     ...redisModules,
     ...paymentModules,
+    ...notificationModules,
   ],
 })
