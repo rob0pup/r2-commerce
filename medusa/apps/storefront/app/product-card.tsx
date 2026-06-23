@@ -1,10 +1,12 @@
+import Link from "next/link"
+
 import type { Product } from "@/lib/medusa"
 
 export function ProductCard({ p, score }: { p: Product; score?: number }) {
   return (
-    <article className="product">
+    <Link href={`/products/${p.handle}`} className="product">
       <div className="product-img">
-        {/* Plain img: thumbnails are external (loremflickr), no next/image config needed. */}
+        {/* Plain img: thumbnails are external (Unsplash), no next/image config needed. */}
         {p.thumbnail ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={p.thumbnail} alt={p.title} loading="lazy" />
@@ -19,6 +21,6 @@ export function ProductCard({ p, score }: { p: Product; score?: number }) {
         <h3>{p.title}</h3>
         <span className="product-price">{p.price !== null ? `$${p.price}` : "—"}</span>
       </div>
-    </article>
+    </Link>
   )
 }

@@ -4,7 +4,6 @@ import { useState } from "react"
 
 import type { Product } from "@/lib/medusa"
 
-import { LogoMark } from "./logo-mark"
 import { ProductCard } from "./product-card"
 
 type SearchResult = Product & { description?: string; score: number }
@@ -49,10 +48,6 @@ export function Store({ products }: { products: Product[] }) {
 
   return (
     <main className="wrap">
-      <div className="brand">
-        <LogoMark className="logo" />
-        <span>R² Commerce</span>
-      </div>
       <h1>Search by meaning, not keywords.</h1>
       <p className="sub">
         A real Medusa store. Describe what you need in your own words and the catalog
