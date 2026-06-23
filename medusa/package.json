@@ -17,8 +17,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@types/react": "19.0.5",
-      "@types/react-dom": "19.0.5"
+      "@types/react": "18.3.2",
+      "@types/react-dom": "18.3.2"
     }
   },
   "devDependencies": {
@@ -35,6 +35,8 @@
   "overrides": {
     "ajv": "^8.0.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "@types/react": "^18.3.2",
+    "@types/react-dom": "^18.3.2"
   }
 }

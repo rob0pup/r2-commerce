@@ -1,3 +1,5 @@
+import { GoogleAnalytics } from "@next/third-parties/google"
+import { Analytics } from "@vercel/analytics/next"
 import type { Metadata } from "next"
 
 import "./globals.css"
@@ -23,6 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <CartDrawer />
           </CartProvider>
         </AuthProvider>
+        <Analytics />
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+        )}
       </body>
     </html>
   )
