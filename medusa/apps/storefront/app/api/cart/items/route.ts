@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { medusaFetch } from "@/lib/medusa"
+import { authHeader, medusaFetch } from "@/lib/medusa"
 
 const FIELDS =
   "fields=id,currency_code,subtotal,total,item_subtotal,*items,*items.variant"
@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
   const { cartId, variantId, quantity } = await req.json()
   const res = await medusaFetch(`/store/carts/${cartId}/line-items?${FIELDS}`, {
     method: "POST",
+    headers: authHeader(req),
     body: JSON.stringify({ variant_id: variantId, quantity: quantity ?? 1 }),
   })
   return NextResponse.json(await res.json(), { status: res.status })
@@ -20,7 +21,7 @@ export async function PATCH(req: NextRequest) {
   const { cartId, lineId, quantity } = await req.json()
   const res = await medusaFetch(
     `/store/carts/${cartId}/line-items/${lineId}?${FIELDS}`,
-    { method: "POST", body: JSON.stringify({ quantity }) }
+    { method: "POST", headers: authHeader(req), body: JSON.stringify({ quantity }) }
   )
   return NextResponse.json(await res.json(), { status: res.status })
 }
@@ -31,7 +32,7 @@ export async function DELETE(req: NextRequest) {
   const lineId = req.nextUrl.searchParams.get("lineId")
   const res = await medusaFetch(
     `/store/carts/${cartId}/line-items/${lineId}`,
-    { method: "DELETE" }
+    { method: "DELETE", headers: authHeader(req) }
   )
   const data = await res.json()
   // Medusa returns { deleted, parent: <cart> } for line-item deletes.

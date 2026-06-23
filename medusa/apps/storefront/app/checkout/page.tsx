@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
+import { authJsonHeaders } from "@/app/auth-context"
 import { useCart } from "@/app/cart-context"
 
 type ShippingOption = { id: string; name: string; amount: number }
@@ -91,7 +92,7 @@ export default function CheckoutPage() {
     try {
       const r = await fetch("/api/checkout/address", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: authJsonHeaders(),
         body: JSON.stringify({ cartId, email, address }),
       })
       if (!r.ok) throw new Error()
@@ -110,7 +111,7 @@ export default function CheckoutPage() {
     try {
       const r = await fetch("/api/checkout/shipping", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: authJsonHeaders(),
         body: JSON.stringify({ cartId, optionId }),
       })
       const d = await r.json()
@@ -134,7 +135,7 @@ export default function CheckoutPage() {
     try {
       const r = await fetch("/api/checkout/complete", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: authJsonHeaders(),
         body: JSON.stringify({ cartId }),
       })
       const d = await r.json()

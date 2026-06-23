@@ -8,6 +8,8 @@ import {
   useState,
 } from "react"
 
+import { authHeaders, authJsonHeaders } from "./auth-context"
+
 export type CartItem = {
   id: string
   title: string
@@ -48,7 +50,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const id = localStorage.getItem(LS_KEY)
     if (!id) return
-    fetch(`/api/cart?id=${id}`)
+    fetch(`/api/cart?id=${id}`, { headers: authHeaders() })
       .then((r) => r.json())
       .then((d) => {
         if (d.cart) setCart(d.cart as Cart)
@@ -60,7 +62,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const ensureCart = useCallback(async (): Promise<string> => {
     const existing = cart?.id ?? localStorage.getItem(LS_KEY)
     if (existing) return existing
-    const r = await fetch("/api/cart", { method: "POST" })
+    const r = await fetch("/api/cart", { method: "POST", headers: authHeaders() })
     const d = await r.json()
     localStorage.setItem(LS_KEY, d.cart.id)
     setCart(d.cart as Cart)
@@ -74,7 +76,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const cartId = await ensureCart()
         const r = await fetch("/api/cart/items", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: authJsonHeaders(),
           body: JSON.stringify({ cartId, variantId, quantity }),
         })
         const d = await r.json()
@@ -94,7 +96,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       try {
         const r = await fetch("/api/cart/items", {
           method: "PATCH",
-          headers: { "content-type": "application/json" },
+          headers: authJsonHeaders(),
           body: JSON.stringify({ cartId: cart.id, lineId, quantity }),
         })
         const d = await r.json()
@@ -113,6 +115,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       try {
         const r = await fetch(`/api/cart/items?cartId=${cart.id}&lineId=${lineId}`, {
           method: "DELETE",
+          headers: authHeaders(),
         })
         const d = await r.json()
         if (d.cart) setCart(d.cart as Cart)

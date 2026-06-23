@@ -10,6 +10,15 @@ export const BACKEND = withScheme(process.env.MEDUSA_BACKEND_URL ?? "http://loca
 export const KEY = process.env.MEDUSA_PUBLISHABLE_KEY ?? ""
 export const REGION = process.env.MEDUSA_REGION_ID ?? ""
 
+// Pull a forwarded customer Bearer token off an incoming request so the cart
+// and checkout proxies can attach orders to the logged-in customer.
+export function authHeader(req: {
+  headers: { get(name: string): string | null }
+}): Record<string, string> {
+  const a = req.headers.get("authorization")
+  return a ? { authorization: a } : {}
+}
+
 // Shared fetch to the Store API with the publishable key attached. Used by both
 // the catalog reads here and the cart proxy routes.
 export function medusaFetch(path: string, init?: RequestInit) {
