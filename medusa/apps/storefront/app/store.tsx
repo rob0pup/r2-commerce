@@ -55,6 +55,7 @@ export function Store({ products }: { products: Product[] }) {
       </p>
 
       <form
+        className="search-form"
         onSubmit={(e) => {
           e.preventDefault()
           run(q)

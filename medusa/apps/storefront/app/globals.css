@@ -60,7 +60,7 @@ h1 {
   margin: 0 0 28px;
 }
 
-form {
+.search-form {
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
