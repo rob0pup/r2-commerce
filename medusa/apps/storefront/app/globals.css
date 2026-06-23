@@ -609,3 +609,121 @@ button:disabled {
   text-align: center;
   margin: 8px 0 0;
 }
+
+/* Checkout */
+.checkout {
+  padding-top: 32px;
+}
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 28px;
+  margin-top: 20px;
+  align-items: start;
+}
+.checkout-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+.checkout-card h2 {
+  margin: 0 0 14px;
+  font-size: 16px;
+}
+.checkout-card input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+.row2 {
+  display: flex;
+  gap: 10px;
+}
+.row2 input {
+  flex: 1;
+}
+.ship-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ship-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.ship-option.sel {
+  border-color: var(--fg);
+}
+.ship-option span:first-of-type {
+  flex: 1;
+}
+.ship-price {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.checkout-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+.checkout-error {
+  color: #ff6b6b;
+  font-size: 14px;
+  margin-top: 12px;
+}
+.checkout-summary {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+.checkout-summary h2 {
+  margin: 0 0 14px;
+  font-size: 16px;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  padding: 6px 0;
+}
+.summary-row.muted {
+  color: var(--muted);
+}
+.summary-row.total {
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  padding-top: 12px;
+  font-weight: 700;
+  font-size: 16px;
+}
+.order-confirmed {
+  max-width: 560px;
+  margin: 40px auto;
+  text-align: center;
+}
+.order-confirmed code {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 13px;
+}
+.order-confirmed .add-btn {
+  display: inline-block;
+  margin-top: 16px;
+  text-decoration: none;
+}
+@media (max-width: 760px) {
+  .checkout-grid {
+    grid-template-columns: 1fr;
+  }
+}

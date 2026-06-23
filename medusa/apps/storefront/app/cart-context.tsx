@@ -33,6 +33,7 @@ type CartContextValue = {
   addItem: (variantId: string, quantity?: number) => Promise<void>
   updateItem: (lineId: string, quantity: number) => Promise<void>
   removeItem: (lineId: string) => Promise<void>
+  clearCart: () => void
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
@@ -122,11 +123,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [cart]
   )
 
+  const clearCart = useCallback(() => {
+    localStorage.removeItem(LS_KEY)
+    setCart(null)
+    setOpen(false)
+  }, [])
+
   const count = (cart?.items ?? []).reduce((n, i) => n + i.quantity, 0)
 
   return (
     <CartContext.Provider
-      value={{ cart, count, open, loading, setOpen, addItem, updateItem, removeItem }}
+      value={{ cart, count, open, loading, setOpen, addItem, updateItem, removeItem, clearCart }}
     >
       {children}
     </CartContext.Provider>

@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+
 import { useCart } from "./cart-context"
 
 export function CartDrawer() {
@@ -78,10 +80,9 @@ export function CartDrawer() {
               <span>Subtotal</span>
               <span>${cart?.subtotal ?? 0}</span>
             </div>
-            <button type="button" className="drawer-checkout" disabled>
-              Checkout (coming soon)
-            </button>
-            <p className="drawer-note">Stripe checkout lands in the next phase.</p>
+            <Link href="/checkout" className="drawer-checkout" onClick={() => setOpen(false)}>
+              Checkout
+            </Link>
           </div>
         )}
       </aside>

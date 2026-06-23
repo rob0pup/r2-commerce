@@ -19,6 +19,30 @@ const redisModules = REDIS_URL
     ]
   : []
 
+// Stripe card payments activate only when STRIPE_API_KEY is set. Until then the
+// store uses the built-in manual provider (pp_system_default), so checkout works
+// without Stripe. The "system" provider stays available alongside Stripe.
+const STRIPE_API_KEY = process.env.STRIPE_API_KEY
+const paymentModules = STRIPE_API_KEY
+  ? [
+      {
+        resolve: "@medusajs/medusa/payment",
+        options: {
+          providers: [
+            {
+              resolve: "@medusajs/medusa/payment-stripe",
+              id: "stripe",
+              options: {
+                apiKey: STRIPE_API_KEY,
+                webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+              },
+            },
+          ],
+        },
+      },
+    ]
+  : []
+
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
@@ -36,5 +60,6 @@ module.exports = defineConfig({
       resolve: "./src/modules/semantic-search",
     },
     ...redisModules,
+    ...paymentModules,
   ],
 })
