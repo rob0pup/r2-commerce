@@ -22,6 +22,22 @@ const CATALOG = [
   { name: "Standing Desk Converter", description: "Raises your monitor and keyboard so you can work standing up.", price: 180 },
   { name: "Travel Toiletry Bag", description: "Hanging organizer with leakproof bottles for weekend trips.", price: 29 },
   { name: "Smart Sleep Tracker", description: "Bedside device that tracks sleep stages and gently wakes you.", price: 149 },
+  { name: "GPS Pet Tracker Collar", description: "Lightweight collar that tracks your dog's location and activity from your phone.", price: 59 },
+  { name: "Ergonomic Office Chair", description: "Mesh-back chair with adjustable lumbar support for long days at the desk.", price: 320 },
+  { name: "Portable Bluetooth Speaker", description: "Rugged pocket speaker with surprising bass for the beach, shower, or backyard.", price: 79 },
+  { name: "Chef's Knife", description: "Razor-sharp 8-inch blade that breezes through herbs, onions, and squash.", price: 85 },
+  { name: "Memory Foam Pillow", description: "Contouring pillow that cradles your neck for deeper, pain-free sleep.", price: 39 },
+  { name: "Electric Gooseneck Kettle", description: "Pour-over kettle with a precise spout and exact temperature control.", price: 49 },
+  { name: "Carry-On Hardshell Suitcase", description: "Lightweight spinner that fits the overhead bin and shrugs off rough handling.", price: 175 },
+  { name: "Foam Roller", description: "Firm roller for working out tight muscles and sore legs after training.", price: 28 },
+  { name: "Fitness Smartwatch", description: "Tracks heart rate, runs, and sleep with a battery that lasts a week.", price: 199 },
+  { name: "Packable Rain Shell", description: "Waterproof, breathable jacket that stuffs into its own pocket for sudden downpours.", price: 110 },
+  { name: "French Press", description: "Brews rich, full-bodied coffee with no paper filter and no electricity.", price: 32 },
+  { name: "Adjustable Dumbbell Set", description: "One pair that dials from light to heavy, replacing a whole rack of weights.", price: 249 },
+  { name: "Blackout Sleep Mask", description: "Contoured mask that blocks every bit of light without pressing on your eyes.", price: 22 },
+  { name: "Mesh WiFi System", description: "Blankets a whole house in fast, steady WiFi with no dead zones.", price: 145 },
+  { name: "Leather Weekender Duffel", description: "Roomy full-grain leather bag sized for a stylish two-night getaway.", price: 160 },
+  { name: "HEPA Air Purifier", description: "Quietly clears dust, smoke, and allergens from a large room.", price: 189 },
 ]
 
 export default async function seedProducts({ container }: ExecArgs) {

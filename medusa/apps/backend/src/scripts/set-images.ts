@@ -21,6 +21,21 @@ const PHOTO_ID: Record<string, string> = {
   "Travel Toiletry Bag": "1585687635785-994bda55c78e",
   "Smart Sleep Tracker": "1434494878577-86c23bcb06b9",
   "GPS Pet Tracker Collar": "1530281700549-e82e7bf110d6",
+  "Ergonomic Office Chair": "1688578735427-994ecdea3ea4",
+  "Portable Bluetooth Speaker": "1608043152269-423dbba4e7e1",
+  "Chef's Knife": "1593618229012-8aaad1cfefc3",
+  "Memory Foam Pillow": "1584100936595-c0654b55a2e2",
+  "Electric Gooseneck Kettle": "1650940925927-f4a30c930a4d",
+  "Carry-On Hardshell Suitcase": "1670888664952-efff442ec0d2",
+  "Foam Roller": "1591741535585-9c4f52b3f13f",
+  "Fitness Smartwatch": "1696688713460-de12ac76ebc6",
+  "Packable Rain Shell": "1548883354-94bcfe321cbb",
+  "French Press": "1639906512494-dd4a536abc4e",
+  "Adjustable Dumbbell Set": "1703668984128-b506579acdd2",
+  "Blackout Sleep Mask": "1666934209818-cd6a6d08bd8d",
+  "Mesh WiFi System": "1606904825846-647eb07f5be2",
+  "Leather Weekender Duffel": "1525103504173-8dc1582c7430",
+  "HEPA Air Purifier": "1632928274371-878938e4d825",
 }
 
 function imageFor(title: string): string | null {
