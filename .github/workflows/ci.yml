@@ -41,3 +41,5 @@ jobs:
       # picks up the runner's preinstalled yarn, which crashes on Node 20;
       # `tsc --noEmit` catches the type errors we care about without that.)
       - run: cd apps/storefront && npx tsc --noEmit
+      # Backend unit tests (pure logic: rate limiter, email templates).
+      - run: npm run test:unit --workspace @dtc/backend

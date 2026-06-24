@@ -446,8 +446,9 @@ and `NEXT_PUBLIC_GA_ID` on the storefront.
 
 This is a focused reference implementation. Known gaps, roughly in priority order:
 
-- The `/semantic-search` route is **unauthenticated and public**. Before real
-  traffic, move it under `/store` (publishable API key) or add rate limiting.
+- The `/semantic-search` route is **unauthenticated and public**. It's rate
+  limited per IP (30 req/min, in-memory), but for real traffic you'd also move it
+  under `/store` (publishable API key) and back the limiter with Redis.
 - The relevance `threshold` is a single global constant; per-category tuning or a
   relative cutoff would be better.
 - No hybrid search yet — combining semantic ranking with keyword/filter (price,
