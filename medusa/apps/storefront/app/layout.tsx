@@ -7,6 +7,7 @@ import "./globals.css"
 import { AuthProvider } from "./auth-context"
 import { CartProvider } from "./cart-context"
 import { CartDrawer } from "./cart-drawer"
+import { SiteFooter } from "./site-footer"
 import { SiteHeader } from "./site-header"
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CartProvider>
             <SiteHeader />
             {children}
+            <SiteFooter />
             <CartDrawer />
           </CartProvider>
         </AuthProvider>
