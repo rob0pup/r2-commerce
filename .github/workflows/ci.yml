@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Catches type/build errors on every PR, the way the deploys would. Dummy env
+# values let the backend config load without real services; the build never
+# connects to the database or any provider.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: medusa
+    env:
+      NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+      DATABASE_URL: postgres://user:pass@localhost:5432/medusa
+      GOOGLE_GENERATIVE_AI_API_KEY: ci-dummy
+      JWT_SECRET: ci-secret
+      COOKIE_SECRET: ci-secret
+      STORE_CORS: http://localhost:8000
+      ADMIN_CORS: http://localhost:9000
+      AUTH_CORS: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: medusa/package-lock.json
+      # The committed lockfile was generated on Windows and omits Linux native
+      # deps (e.g. @swc/core-linux-x64-gnu, which medusa build needs to load the
+      # TS config). npm won't backfill cross-platform optional deps into an
+      # existing lockfile, so drop it and resolve fresh for this runner.
+      - run: rm -f package-lock.json && npm install
+      # Backend: the full strict `medusa build` (compiles all src incl. scripts).
+      - run: npm run build --workspace @dtc/backend
+      # Storefront: type-check. (A full `next build` probes a package manager and
+      # picks up the runner's preinstalled yarn, which crashes on Node 20;
+      # `tsc --noEmit` catches the type errors we care about without that.)
+      - run: cd apps/storefront && npx tsc --noEmit
