@@ -822,3 +822,47 @@ button:disabled {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* Global open-source footer */
+.site-footer {
+  margin-top: 80px;
+  border-top: 1px solid var(--border);
+  padding: 28px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.footer-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.footer-brand {
+  color: var(--fg);
+  font-weight: 600;
+}
+.footer-note a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.footer-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 14px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.footer-star:hover {
+  background: var(--panel);
+  border-color: #3a3a40;
+}
