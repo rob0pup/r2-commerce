@@ -5,10 +5,9 @@ on:
   push:
     branches: [main]
 
-# Builds the Medusa monorepo (backend `medusa build` + storefront `next build`)
-# the same way the deploys do, so type errors are caught on every PR. Dummy env
-# values let the config load without real services; the build never connects to
-# the database or any provider.
+# Catches type/build errors on every PR, the way the deploys would. Dummy env
+# values let the backend config load without real services; the build never
+# connects to the database or any provider.
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,5 +30,13 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: medusa/package-lock.json
-      - run: npm ci
-      - run: npm run build
+      # `npm install` (not `npm ci`) so platform-specific native deps (e.g.
+      # @swc/core for Linux) resolve even though the lockfile was generated on
+      # Windows and omits them.
+      - run: npm install
+      # Backend: the full strict `medusa build` (compiles all src incl. scripts).
+      - run: npm run build --workspace @dtc/backend
+      # Storefront: type-check. (A full `next build` probes a package manager and
+      # picks up the runner's preinstalled yarn, which crashes on Node 20;
+      # `tsc --noEmit` catches the type errors we care about without that.)
+      - run: cd apps/storefront && npx tsc --noEmit
