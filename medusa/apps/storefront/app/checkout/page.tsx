@@ -6,6 +6,8 @@ import { useEffect, useState } from "react"
 import { authJsonHeaders } from "@/app/auth-context"
 import { useCart } from "@/app/cart-context"
 
+import { StripePayment, stripeConfigured } from "./stripe-payment"
+
 type ShippingOption = { id: string; name: string; amount: number }
 type Totals = { subtotal: number; shipping: number; total: number }
 type Order = { id: string; total: number; email: string }
@@ -31,6 +33,7 @@ export default function CheckoutPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [clientSecret, setClientSecret] = useState("")
 
   const cartId = cart?.id
 
@@ -53,6 +56,23 @@ export default function CheckoutPage() {
       .catch(() => setError("Could not load shipping options."))
   }, [step, cartId])
 
+  // On the review step with Stripe configured, create the Stripe payment session
+  // up front so the card form has a client secret to confirm against.
+  useEffect(() => {
+    if (step !== "review" || !stripeConfigured || !cartId || clientSecret) return
+    fetch("/api/checkout/payment-session", {
+      method: "POST",
+      headers: authJsonHeaders(),
+      body: JSON.stringify({ cartId, provider: "pp_stripe_stripe" }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.clientSecret) setClientSecret(d.clientSecret)
+        else setError("Could not start the card payment.")
+      })
+      .catch(() => setError("Could not start the card payment."))
+  }, [step, cartId, clientSecret])
+
   if (order) {
     return (
       <main className="wrap checkout">
@@ -63,8 +83,9 @@ export default function CheckoutPage() {
             <strong>${order.total}</strong>.
           </p>
           <p className="checkout-note">
-            Paid via the manual provider (no real charge). Stripe card payment activates
-            once a Stripe key is configured.
+            {stripeConfigured
+              ? "Paid with a Stripe test card (no real charge)."
+              : "Paid via the manual provider (no real charge)."}
           </p>
           <Link href="/" className="add-btn">
             Continue shopping
@@ -129,23 +150,37 @@ export default function CheckoutPage() {
     }
   }
 
-  async function placeOrder() {
+  // Complete the cart into an order. Called after the Stripe card is confirmed,
+  // or directly in the manual flow. Does not toggle `loading` itself so the
+  // caller (Stripe form or manual button) owns the spinner.
+  async function completeOrder() {
+    const r = await fetch("/api/checkout/complete", {
+      method: "POST",
+      headers: authJsonHeaders(),
+      body: JSON.stringify({ cartId }),
+    })
+    const d = await r.json()
+    if (d.type === "order" && d.order) {
+      setOrder({ id: d.order.id, total: d.order.total, email: d.order.email })
+      clearCart()
+      setStep("done")
+    } else {
+      setError(d.message ?? "Could not place the order.")
+    }
+  }
+
+  // Manual provider flow (no Stripe key): create the session, then complete.
+  async function placeOrderManual() {
     setLoading(true)
     setError("")
     try {
-      const r = await fetch("/api/checkout/complete", {
+      const s = await fetch("/api/checkout/payment-session", {
         method: "POST",
         headers: authJsonHeaders(),
-        body: JSON.stringify({ cartId }),
+        body: JSON.stringify({ cartId, provider: "pp_system_default" }),
       })
-      const d = await r.json()
-      if (d.type === "order" && d.order) {
-        setOrder({ id: d.order.id, total: d.order.total, email: d.order.email })
-        clearCart()
-        setStep("done")
-      } else {
-        setError(d.message ?? "Could not place the order.")
-      }
+      if (!s.ok) throw new Error()
+      await completeOrder()
     } catch {
       setError("Could not place the order.")
     } finally {
@@ -256,13 +291,39 @@ export default function CheckoutPage() {
           {step === "review" && (
             <div className="checkout-card">
               <h2>Review &amp; place order</h2>
-              <p className="checkout-note">
-                Payment uses the manual provider for now (no real charge). Stripe card
-                payment activates once a Stripe key is configured.
-              </p>
-              <button type="button" className="add-btn" disabled={loading} onClick={placeOrder}>
-                {loading ? "Placing…" : "Place order"}
-              </button>
+              {stripeConfigured ? (
+                clientSecret ? (
+                  <>
+                    <p className="checkout-note">
+                      Test mode. Use card <code>4242 4242 4242 4242</code>, any future
+                      expiry, any CVC.
+                    </p>
+                    <StripePayment
+                      clientSecret={clientSecret}
+                      loading={loading}
+                      setLoading={setLoading}
+                      setError={setError}
+                      onPaid={completeOrder}
+                    />
+                  </>
+                ) : (
+                  <p className="empty">Loading payment…</p>
+                )
+              ) : (
+                <>
+                  <p className="checkout-note">
+                    Payment uses the manual provider (no real charge).
+                  </p>
+                  <button
+                    type="button"
+                    className="add-btn"
+                    disabled={loading}
+                    onClick={placeOrderManual}
+                  >
+                    {loading ? "Placing…" : "Place order"}
+                  </button>
+                </>
+              )}
             </div>
           )}
 

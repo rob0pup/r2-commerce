@@ -673,6 +673,20 @@ button:disabled {
   line-height: 1.5;
   margin: 0 0 16px;
 }
+.checkout-note code {
+  font-size: 12px;
+  background: var(--card-2, rgba(0, 0, 0, 0.05));
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.stripe-pay {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.stripe-pay .add-btn {
+  margin-top: 4px;
+}
 .checkout-error {
   color: #ff6b6b;
   font-size: 14px;
