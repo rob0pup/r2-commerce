@@ -45,20 +45,17 @@ export default async function seedProducts({ container }: ExecArgs) {
   const semanticSearch = container.resolve(SEMANTIC_SEARCH_MODULE) as SemanticSearchService
   const logger = container.resolve("logger")
 
-  const titles = new Set(CATALOG.map((c) => c.name))
-
-  // Clean slate for our catalog so re-running is idempotent. Module-level delete
-  // doesn't emit product.deleted, so drop the matching embeddings explicitly.
+  // Idempotent and non-destructive: create only the catalog products that
+  // aren't already in the store (matched by title), and leave everything else
+  // (existing products, their orders, edits made in the admin) untouched. Safe
+  // to re-run after adding items to CATALOG.
   const existing = await productModule.listProducts({}, { take: 1000 })
-  const mine = existing.filter((p) => titles.has(p.title))
-  if (mine.length) {
-    await productModule.deleteProducts(mine.map((p) => p.id))
-    for (const p of mine) await semanticSearch.removeProduct(p.id)
-    logger.info(`Removed ${mine.length} existing catalog products.`)
-  }
-
-  logger.info(`Seeding ${CATALOG.length} products…`)
-  for (const item of CATALOG) {
+  const have = new Set(existing.map((p) => p.title))
+  const toCreate = CATALOG.filter((c) => !have.has(c.name))
+  logger.info(
+    `Catalog: ${CATALOG.length} defined, ${CATALOG.length - toCreate.length} already present, creating ${toCreate.length}…`
+  )
+  for (const item of toCreate) {
     const { result } = await createProductsWorkflow(container).run({
       input: {
         products: [
