@@ -82,11 +82,31 @@ function CardForm({ loading, setLoading, setError, onPaid }: Omit<Props, "client
   )
 }
 
+// Dark Stripe Elements theme tuned to the storefront's palette.
+const appearance = {
+  theme: "night" as const,
+  variables: {
+    colorPrimary: "#ffffff",
+    colorBackground: "#0a0a0a",
+    colorText: "#ededed",
+    colorTextSecondary: "#9ca3af",
+    colorDanger: "#ff6b6b",
+    borderRadius: "10px",
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  },
+  rules: {
+    ".Input": { border: "1px solid #262626" },
+    ".Input:focus": { border: "1px solid #525252", boxShadow: "none" },
+    ".Tab, .Block": { border: "1px solid #262626" },
+  },
+}
+
 export function StripePayment({ clientSecret, ...rest }: Props) {
   const promise = getStripe()
   if (!promise || !clientSecret) return null
   return (
-    <Elements stripe={promise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
+    <Elements stripe={promise} options={{ clientSecret, appearance }}>
       <CardForm {...rest} />
     </Elements>
   )
