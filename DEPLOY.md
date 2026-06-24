@@ -6,17 +6,25 @@ free, while Railway runs only the always-on Medusa server.
 ```
 Shopper ──▶ storefront (Vercel) ──▶ Medusa backend (Railway) ──▶ Neon Postgres + pgvector
                                             │
-                                            ├──▶ Upstash Redis (events, cache) [optional]
-                                            └──▶ Gemini API (embeddings)
+                                            ├──▶ Upstash Redis (events, cache)   [optional]
+                                            ├──▶ Gemini API (embeddings)
+                                            ├──▶ Resend (transactional email)    [optional]
+                                            └──▶ Stripe (card payments)          [optional]
 ```
 
-| Piece      | Host                 | Plan / cost                           |
-| ---------- | -------------------- | ------------------------------------- |
-| Database   | Neon                 | Free (already provisioned)            |
-| Redis      | Upstash              | Free tier (optional but recommended)  |
-| Backend    | Railway              | Hobby ~$5/mo (always-on)              |
-| Storefront | Vercel               | Hobby free (Pro $20/mo if commercial) |
-| Domain     | shop.robinrahman.pro | DNS only                              |
+| Piece      | Host                       | Plan / cost                           |
+| ---------- | -------------------------- | ------------------------------------- |
+| Database   | Neon                       | Free (already provisioned)            |
+| Redis      | Upstash                    | Free tier (optional but recommended)  |
+| Backend    | Railway                    | Hobby ~$5/mo (always-on)              |
+| Storefront | Vercel                     | Hobby free (Pro $20/mo if commercial) |
+| Email      | Resend                     | Free tier (3,000/mo, optional)        |
+| Domains    | shop / commerce-api        | DNS only (storefront + backend/admin) |
+
+The backend serves **both** the API and the admin dashboard (`/app`) from one
+service, so it needs only one domain. Optional integrations (Redis, Resend,
+Stripe, Google Analytics) each activate purely by setting their env var — the app
+runs without them.
 
 Build/start commands below are verified against this repo (Medusa 2.16, monorepo).
 
@@ -33,6 +41,11 @@ Build/start commands below are verified against this repo (Medusa 2.16, monorepo
    prepared statements that break on PgBouncer pooled endpoints.
 3. **(Optional) Upstash Redis** — create a free database, copy its `rediss://` URL.
    Skip for a first deploy; Medusa falls back to in-memory (single instance only).
+4. **(Optional) Resend** — for transactional email. Create an account, verify a
+   sending domain, and copy an `re_...` API key. Full walkthrough in
+   [Part E](#part-e--email-resend-optional).
+5. **(Optional) Stripe** — for card payments. Copy a (test or live) secret key
+   `sk_...`. Without it, checkout uses Medusa's built-in manual provider.
 
 ---
 
@@ -75,7 +88,23 @@ NPM_CONFIG_LEGACY_PEER_DEPS=true
 
 # Optional (recommended for production)
 REDIS_URL=rediss://...                   # Upstash
+
+# Optional — transactional email (see Part E). Without these, Medusa logs
+# notifications locally instead of sending them.
+RESEND_API_KEY=re_...
+RESEND_FROM=R² Commerce <noreply@yourdomain.com>
+MEDUSA_BACKEND_URL=https://<your-backend>.up.railway.app   # builds the admin reset link
+STOREFRONT_URL=https://<your-storefront>.vercel.app        # builds the customer reset link
+
+# Optional — card payments. Without it, checkout uses the manual provider.
+STRIPE_API_KEY=sk_...
+STRIPE_WEBHOOK_SECRET=whsec_...           # only if you wire up Stripe webhooks
 ```
+
+Set the `<...>` URL placeholders to whatever the live hosts end up being — the
+`.up.railway.app` / `.vercel.app` defaults, or your custom domains once they're
+live ([Part D](#part-d--custom-domains-optional)). `MEDUSA_BACKEND_URL` and `STOREFRONT_URL`
+are only used to build password-reset links, so they can be filled in later.
 
 Railway injects `PORT` automatically (8080) and Medusa binds to it — do **not**
 hardcode 9000. `MEDUSA_WORKER_MODE` defaults to `shared` (API + worker in one
@@ -104,18 +133,23 @@ npm run user -- -e you@example.com -p yourpassword
 
 The admin dashboard is then at `https://<your-backend>.up.railway.app/app`.
 
-**Seed demo products** — the production build doesn't ship the seed script's
-`.ts` source, so `npm run seed` won't run inside the container. Instead run it
-from a local clone pointed at the production database (this is what indexes the
-embeddings too):
+**Seed and set up the store** — the production build doesn't ship the `.ts`
+scripts, so these won't run inside the container. Run them from a local clone
+pointed at the **production** database (this also indexes the embeddings):
 
 ```bash
 # in medusa/apps/backend locally, with DATABASE_URL set to the production Neon string
-npm run seed
+npm run seed                                         # demo products + embeddings
+npx medusa exec ./src/scripts/setup-store.ts         # region, sales channel, payment link
+npx medusa exec ./src/scripts/setup-inventory.ts     # stock levels (required to add to cart)
+npx medusa exec ./src/scripts/setup-checkout.ts      # shipping options + payment provider
+npx medusa exec ./src/scripts/link-shipping-profile.ts  # link products to the shipping profile
 ```
 
-You only do this once for the demo catalog — after that, the semantic-search
-subscriber indexes any product you add through the admin automatically.
+You only do this once. After that, the semantic-search subscriber indexes any
+product you add through the admin automatically. The setup scripts make products
+fully purchasable end to end (inventory, shipping, and payment are all required for
+checkout to complete) — skip them and "add to cart" or "complete order" will fail.
 
 ---
 
@@ -124,14 +158,24 @@ subscriber indexes any product you add through the admin automatically.
 1. [vercel.com](https://vercel.com) → **Add New → Project** → import
    `rob0pup/r2-commerce` (grant access to the private repo).
 2. **Root Directory:** `medusa/apps/storefront` (Framework auto-detects Next.js).
-3. **Environment Variable:**
+3. **Environment Variables:**
    ```
    MEDUSA_BACKEND_URL=https://<your-backend>.up.railway.app
+   MEDUSA_PUBLISHABLE_KEY=pk_...        # admin → Settings → Publishable API Keys
+   MEDUSA_REGION_ID=reg_...             # admin → Settings → Regions (the region's id)
+   NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX       # optional — Google Analytics 4 measurement id
    ```
 4. **Deploy.** Vercel gives you `https://<your-storefront>.vercel.app`.
 
-The browser only calls the storefront's own `/api/search` route, which proxies to
-the backend server-side — so there's no public CORS surface from the browser.
+`MEDUSA_PUBLISHABLE_KEY` must be linked to the sales channel your products are in
+(the default key created by `setup-store.ts` already is), or `/store` endpoints
+return an empty catalog. `MEDUSA_REGION_ID` selects the pricing region. Grab both
+from the admin dashboard. `NEXT_PUBLIC_GA_ID` is optional — leave it unset and
+Google Analytics simply doesn't load (Vercel Analytics needs no key and is always
+on once deployed to Vercel).
+
+The browser only calls the storefront's own `/api/*` routes, which proxy to the
+backend server-side — so there's no public CORS surface from the browser.
 
 ---
 
@@ -143,11 +187,71 @@ the backend server-side — so there's no public CORS surface from the browser.
 
 ---
 
-## Part D — Custom domain (optional)
+## Part D — Custom domains (optional)
 
-1. Vercel project → **Settings → Domains** → add `shop.robinrahman.pro` and set the
-   CNAME it shows at your DNS provider.
-2. Update Railway `STORE_CORS` / `AUTH_CORS` to use the custom domain.
+Two subdomains: one for the storefront, one for the backend (which also serves the
+admin at `/app`). Example: `shop.robinrahman.pro` + `commerce-api.robinrahman.pro`.
+
+### Storefront (Vercel)
+
+1. Vercel project → **Settings → Domains** → add `shop.robinrahman.pro` and create
+   the `CNAME` it shows at your DNS provider. Vercel issues TLS automatically.
+
+### Backend + admin (Railway)
+
+1. Railway → backend service → **Settings → Networking → Custom Domain** → add
+   `commerce-api.robinrahman.pro`. When asked for the port, enter **8080**.
+2. Railway shows a **CNAME target** (e.g. `abc123.up.railway.app`). Add a `CNAME`
+   record at your DNS provider: name `commerce-api`, value that target.
+3. Wait for the SSL cert. Until Railway verifies DNS and issues a Let's Encrypt
+   cert, hitting the domain shows a `*.up.railway.app` cert and a browser warning —
+   this is normal and clears itself in a few minutes (up to ~30). The admin then
+   lives at `https://commerce-api.robinrahman.pro/app`.
+
+### Repoint everything at the custom domains
+
+Once both certs are live, update the env vars and redeploy:
+
+```
+# Railway backend
+ADMIN_CORS=https://commerce-api.robinrahman.pro
+AUTH_CORS=https://commerce-api.robinrahman.pro,https://shop.robinrahman.pro
+STORE_CORS=https://shop.robinrahman.pro
+MEDUSA_BACKEND_URL=https://commerce-api.robinrahman.pro
+STOREFRONT_URL=https://shop.robinrahman.pro
+
+# Vercel storefront
+MEDUSA_BACKEND_URL=https://commerce-api.robinrahman.pro
+```
+
+The `.up.railway.app` and `.vercel.app` URLs keep working too — the custom domains
+are additive.
+
+---
+
+## Part E — Email (Resend) (optional)
+
+Transactional email (password resets, order confirmations) goes through
+[Resend](https://resend.com) via the `src/modules/resend` notification provider.
+It's gated on `RESEND_API_KEY`; without it, Medusa logs notifications locally.
+
+1. **Verify a sending domain.** Resend → **Domains → Add Domain** → e.g.
+   `robinrahman.pro`. Add the records it lists (DKIM `TXT`, SPF `TXT`, and an `MX`
+   on a `send.` subdomain) at your DNS provider, then **Verify**. Resend scopes its
+   `MX`/SPF to the `send.` subdomain, so it won't disturb an existing inbox on the
+   apex domain. Until verified, you can only send from `onboarding@resend.dev` to
+   your own account email.
+2. **Create an API key** → Resend → **API Keys → Create** → copy the `re_...` value.
+3. **Set the env vars on the Railway backend** (from Part A) and redeploy:
+   ```
+   RESEND_API_KEY=re_...
+   RESEND_FROM=R² Commerce <noreply@robinrahman.pro>
+   MEDUSA_BACKEND_URL=https://commerce-api.robinrahman.pro
+   STOREFRONT_URL=https://shop.robinrahman.pro
+   ```
+4. **Test:** go to `…/app/login → Forgot password → Reset`, enter your admin email,
+   and check your inbox for the branded reset email. Then place a test order and
+   you'll get an order-confirmation email.
 
 ---
 
@@ -165,3 +269,13 @@ the backend server-side — so there's no public CORS surface from the browser.
   string (Upstash → Connect → Node). A missing scheme or wrong value makes ioredis
   fall back to `localhost:6379`, which floods errors and stops the server from ever
   passing its healthcheck.
+- **Railway custom-domain limit:** the trial/Hobby plan caps how many custom
+  domains a service can have. One backend domain is within the limit; the warning
+  about hitting the cap only blocks adding *more*.
+- **Resend "from" domain:** you can only send to arbitrary customer addresses once
+  your sending domain is verified. Before that, sends are limited to your own
+  account email from `onboarding@resend.dev`, so order-confirmation emails to real
+  customers will fail until the domain is verified.
+- **Admin favicon:** a `postbuild` step (`scripts/patch-admin-favicon.mjs`) patches
+  the R² icon into the generated admin `index.html` on every build — no action
+  needed, just don't be surprised to see it run after `medusa build`.
