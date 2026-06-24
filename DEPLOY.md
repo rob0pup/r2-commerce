@@ -96,9 +96,10 @@ RESEND_FROM=R² Commerce <noreply@yourdomain.com>
 MEDUSA_BACKEND_URL=https://<your-backend>.up.railway.app   # builds the admin reset link
 STOREFRONT_URL=https://<your-storefront>.vercel.app        # builds the customer reset link
 
-# Optional — card payments. Without it, checkout uses the manual provider.
+# Optional — card payments (see Part F). Without these, checkout uses the
+# manual provider. STRIPE_WEBHOOK_SECRET comes from the webhook endpoint.
 STRIPE_API_KEY=sk_...
-STRIPE_WEBHOOK_SECRET=whsec_...           # only if you wire up Stripe webhooks
+STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
 Set the `<...>` URL placeholders to whatever the live hosts end up being — the
@@ -164,6 +165,7 @@ checkout to complete) — skip them and "add to cart" or "complete order" will f
    MEDUSA_PUBLISHABLE_KEY=pk_...        # admin → Settings → Publishable API Keys
    MEDUSA_REGION_ID=reg_...             # admin → Settings → Regions (the region's id)
    NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX       # optional — Google Analytics 4 measurement id
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...   # optional — enables the card form (Part F)
    ```
 4. **Deploy.** Vercel gives you `https://<your-storefront>.vercel.app`.
 
@@ -252,6 +254,43 @@ It's gated on `RESEND_API_KEY`; without it, Medusa logs notifications locally.
 4. **Test:** go to `…/app/login → Forgot password → Reset`, enter your admin email,
    and check your inbox for the branded reset email. Then place a test order and
    you'll get an order-confirmation email.
+
+---
+
+## Part F — Card payments (Stripe) (optional)
+
+The storefront has a full Stripe card flow (Stripe Elements on the review step).
+It activates when the keys are set; otherwise checkout uses the manual provider.
+
+1. **Get your keys** from the Stripe dashboard (test or live):
+   - **Secret key** `sk_...` → Railway backend `STRIPE_API_KEY`.
+   - **Publishable key** `pk_...` → Vercel storefront `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
+   Redeploy both. Setting `STRIPE_API_KEY` registers the provider `pp_stripe_stripe`.
+2. **Enable Stripe for the region** in the admin: **Settings → Regions →** your USD
+   region → **Payment Providers** → check **Stripe (STRIPE)** (the plain one, not the
+   Bancontact/iDEAL/etc. variants) → Save. Without this, the Stripe payment session
+   is rejected with "provider not enabled in region".
+3. **Add the webhook** so capture/refund/failure sync back to Medusa:
+   - Stripe → **Developers → Webhooks → Add endpoint** (newer UI: "Event destinations").
+   - Endpoint URL:
+     ```
+     https://<your-backend>/hooks/payment/stripe_stripe
+     ```
+   - Events: `payment_intent.succeeded`, `payment_intent.amount_capturable_updated`,
+     `payment_intent.payment_failed` (and optionally `payment_intent.canceled`).
+   - Copy the signing secret `whsec_...` → Railway `STRIPE_WEBHOOK_SECRET` → redeploy.
+
+> **Webhook path is `stripe_stripe`, not `stripe`.** The provider is configured with
+> `id: "stripe"`, so its Medusa id is `pp_stripe_stripe`, and the hook route rebuilds
+> the provider id as `pp_{path-segment}`. A `…/hooks/payment/stripe` endpoint resolves
+> to `pp_stripe` and silently drops every event.
+
+**Test:** add an item, check out to the review step, pay with `4242 4242 4242 4242`
+(any future expiry, any CVC, any ZIP). The order appears in admin **Orders**
+(Authorized) and Stripe **Transactions** (Uncaptured). Click **Capture payment** in
+the admin to capture; the webhook delivery for that capture should return **200**.
+Going live: switch Stripe to the live account, swap in `sk_live_`/`pk_live_`, and
+create a separate live-mode webhook (sandbox and live webhooks are independent).
 
 ---
 

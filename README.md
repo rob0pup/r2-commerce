@@ -374,11 +374,32 @@ unknown ones instead of failing the event that emitted them.
 
 ## Payments
 
-Checkout works out of the box using Medusa's built-in **manual** payment provider
-(`pp_system_default`) — enough to produce real orders without any payment account.
-To take card payments, set `STRIPE_API_KEY` (and optionally
-`STRIPE_WEBHOOK_SECRET`); `medusa-config.ts` then registers the Stripe provider
-alongside the system one. No code change required to switch it on.
+Checkout works out of the box with Medusa's built-in **manual** provider
+(`pp_system_default`) — real orders, no payment account needed. The storefront
+also has a full **Stripe card** flow (Stripe Elements on the review step), which
+turns on automatically when both keys are present:
+
+- `STRIPE_API_KEY` (backend) — registers the Stripe provider (`pp_stripe_stripe`).
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (storefront) — switches checkout to the card
+  form. Without it, checkout falls back to the manual provider.
+
+Two more steps to take live card payments:
+
+1. **Enable Stripe for your region** in the admin (Settings → Regions → your region
+   → Payment Providers → check **Stripe**).
+2. **Add a Stripe webhook** so capture/refund/failure sync back to Medusa:
+   - Endpoint: `https://<your-backend>/hooks/payment/stripe_stripe`
+   - Put the signing secret in `STRIPE_WEBHOOK_SECRET` (backend).
+
+> The webhook path is **`stripe_stripe`**, not `stripe`. The provider is configured
+> with `id: "stripe"`, so its Medusa id is `pp_stripe_stripe`, and the hook route
+> rebuilds the provider id as `pp_{path}` — so the path segment must be
+> `stripe_stripe`. A `…/stripe` endpoint resolves to `pp_stripe` and silently drops
+> every event.
+
+The flow authorizes the card at checkout, then captures on order capture
+(admin "Capture payment" or fulfillment); the webhook keeps Stripe and Medusa in
+sync. Test card `4242 4242 4242 4242`, any future expiry, any CVC.
 
 ## Analytics
 
