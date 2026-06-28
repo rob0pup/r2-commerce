@@ -278,8 +278,3 @@ Upstash Redis (optional) · backend on Railway, storefront on Vercel.
   signed so you can trust it.
 - **Provider id (`pp_stripe_stripe`):** Medusa's internal name for the Stripe
   payment provider; it determines the webhook path.
-
----
-
-*Build Notes No. 03. Built by Robin. Part of a series, see No. 01 (Squish) and
-No. 02 (Portfolio).*
