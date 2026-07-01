@@ -28,6 +28,9 @@
     "prettier": "^3.2.5",
     "turbo": "^2.0.14"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.62.2"
+  },
   "workspaces": [
     "apps/**",
     "!apps/backend/.medusa/**"
