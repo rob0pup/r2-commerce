@@ -19,6 +19,20 @@ export function SiteFooter() {
       >
         <span aria-hidden>★</span> Star it on GitHub
       </a>
+      <p className="footer-note">
+        More by R²:{" "}
+        <a href="https://compress.robinrahman.pro" target="_blank" rel="noopener">
+          Squish
+        </a>{" "}
+        ·{" "}
+        <a href="https://youloader.robinrahman.pro" target="_blank" rel="noopener">
+          Youloader
+        </a>{" "}
+        ·{" "}
+        <a href="https://robinrahman.pro" target="_blank" rel="noopener">
+          Portfolio
+        </a>
+      </p>
     </footer>
   )
 }
