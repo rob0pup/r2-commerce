@@ -9,6 +9,7 @@ import { CartProvider } from "./cart-context"
 import { CartDrawer } from "./cart-drawer"
 import { SiteFooter } from "./site-footer"
 import { SiteHeader } from "./site-header"
+import { ViewBeacon } from "./view-beacon"
 
 export const metadata: Metadata = {
   title: "R² Commerce — search by meaning",
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </CartProvider>
         </AuthProvider>
         <Analytics />
+        <ViewBeacon />
         {process.env.NEXT_PUBLIC_GA_ID && (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
         )}
