@@ -29,6 +29,10 @@ export function SiteFooter() {
           Youloader
         </a>{" "}
         ·{" "}
+        <a href="https://docent.robinrahman.pro" target="_blank" rel="noopener">
+          Docent
+        </a>{" "}
+        ·{" "}
         <a href="https://robinrahman.pro" target="_blank" rel="noopener">
           Portfolio
         </a>
