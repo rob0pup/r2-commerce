@@ -59,6 +59,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </AuthProvider>
         <Analytics />
         <ViewBeacon />
+        {/* Live demo of R² Lookup semantic search (a separate SaaS). Set
+            NEXT_PUBLIC_LOOKUP_STORE to the demo store id to show the widget. */}
+        {process.env.NEXT_PUBLIC_LOOKUP_STORE && (
+          <script
+            src="https://lookup.robinrahman.pro/widget.js"
+            data-store={process.env.NEXT_PUBLIC_LOOKUP_STORE}
+            defer
+          />
+        )}
         {process.env.NEXT_PUBLIC_GA_ID && (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
         )}
