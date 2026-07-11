@@ -18,6 +18,8 @@ storefront is [Next.js](https://nextjs.org) on top.
 
 **Live demo:** [shop.robinrahman.pro](https://shop.robinrahman.pro)
 
+**Deploy your own:** [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/o3MXxX?referralCode=robinrahref&utm_medium=integration&utm_source=template&utm_campaign=generic)
+
 ![R² Commerce storefront — semantic search over a product catalog](./docs/storefront.png)
 
 ---
